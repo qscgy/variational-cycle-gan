@@ -14,13 +14,13 @@ class Conv2dDS(nn.Module):
     '''
     Represents a 2D depthwise separable convolution.
     '''
-    def __init__(self, in_channels, out_channels, kernel_size):
+    def __init__(self, in_channels, out_channels, kernel_size, **kwargs):
         super(Conv2dDS, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
-        self.depth_conv = nn.Conv2d(in_channels, in_channels, kernel_size, groups=in_channels)
-        self.pointwise_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.depth_conv = nn.Conv2d(in_channels, in_channels, kernel_size, groups=in_channels, **kwargs)
+        self.pointwise_conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, **kwargs)
         self.conv = nn.Sequential(self.depth_conv, self.pointwise_conv)
     
     def forward(self, x):
@@ -34,8 +34,8 @@ class VAE(nn.Module):
         self.nlevels = opt.nlevels
         self.latent_dim = opt.latent_dim
         self.decoder = nn.Sequential(trans, dec)
-        self.fc_mu = nn.Conv2d(opt.ngf*2**self.nlevels, self.latent_dim, opt.crop_size//(2**self.nlevels), device=device)
-        self.fc_var = nn.Conv2d(opt.ngf*2**self.nlevels, self.latent_dim, opt.crop_size//(2**self.nlevels), device=device)
+        self.fc_mu = Conv2dDS(opt.ngf*2**self.nlevels, self.latent_dim, opt.crop_size//(2**self.nlevels), device=device)
+        self.fc_var = Conv2dDS(opt.ngf*2**self.nlevels, self.latent_dim, opt.crop_size//(2**self.nlevels), device=device)
         self.decoder_input = nn.ConvTranspose2d(self.latent_dim, opt.ngf*2**self.nlevels, opt.crop_size//(2**self.nlevels), device=device)
     
     def encode(self, x):
