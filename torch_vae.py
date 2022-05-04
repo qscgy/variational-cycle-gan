@@ -10,6 +10,8 @@ from torchvision.utils import save_image
 import os
 import time
 import VAE
+import ImageDataset
+from PIL import Image
 
 # From https://github.com/pytorch/examples/blob/main/vae/main.py
 # Modfied by Sam Ehrenstein et al.
@@ -34,23 +36,30 @@ device = torch.device("cuda" if args.cuda else "cpu")
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
 ############  This is where we set up the dataset.  ############
-fm_dir = '/playpen/fashion-mnist'
-transform = transforms.Compose([transforms.ToTensor()])  # No processing needed for FashionMNIST
+fm_dir = '/playpen/Downloads/apple-orange'
+transform = transforms.Compose([
+    transforms.Resize(int(224 * 1.12), Image.BICUBIC),
+    transforms.RandomCrop((224, 224)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+    ])  # No processing needed for FashionMNIST
 
-train_val_dataset = datasets.FashionMNIST(fm_dir, train=True, download=True, transform=transform)
-test_dataset = datasets.FashionMNIST(fm_dir, train=False, transform=transform)  # Held-out test set
-train_dataset, val_dataset = random_split(train_val_dataset, [57000, 3000])
+train_dataset = ImageDataset.ImageDataset(fm_dir, transforms_=transform,
+                unaligned=False, mode='train')
+val_dataset = ImageDataset.ImageDataset(fm_dir, transforms_=transform,
+                unaligned=False, mode='test')
 
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 ############  End of dataset setup.  ############
 
-model = VAE.VAE().to(device)
+model = VAE.VAE(10).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 224**2), reduction='sum')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -64,7 +73,7 @@ def loss_function(recon_x, x, mu, logvar):
 def train(epoch):
     model.train()
     train_loss = 0
-    for batch_idx, (data, _) in enumerate(train_loader):
+    for batch_idx, data in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
@@ -86,7 +95,7 @@ def test(epoch):
     model.eval()
     test_loss = 0
     with torch.no_grad():
-        for i, (data, _) in enumerate(test_loader):
+        for i, data in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()

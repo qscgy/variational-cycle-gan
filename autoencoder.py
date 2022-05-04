@@ -77,7 +77,7 @@ class VAE(nn.Module):
 
     def decode(self, z):
         h3 = self.relu(self.fc3(z))
-        return self.tanh(self.fc4(h3))/2 + 0.5
+        return self.tanh(self.fc4(h3))
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
@@ -335,7 +335,7 @@ class VQ_CVAE(nn.Module):
 
     def sample(self, size):
         sample = torch.randn(size, self.d, self.f,
-                             self.f, requires_grad=False),
+                             self.f, requires_grad=False)
         if self.cuda():
             sample = sample.cuda()
         emb, _ = self.emb(sample)
