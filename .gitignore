@@ -1,2 +1,7 @@
 runs/
 results/
+pytorch-CycleGAN-and-pix2pix/checkpoints
+pytorch-CycleGAN-and-pix2pix/data
+pytorch-CycleGAN-and-pix2pix/datasets
+pytorch-CycleGAN-and-pix2pix/imgs
+pytorch-CycleGAN-and-pix2pix/results
